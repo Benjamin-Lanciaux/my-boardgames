@@ -10,4 +10,13 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      '/bgg-api': {
+        target: 'https://boardgamegeek.com/xmlapi2',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/bgg-api/, ''),
+      },
+    },
+  },
 })
