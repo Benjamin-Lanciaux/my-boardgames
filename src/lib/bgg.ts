@@ -21,9 +21,17 @@ function val(el: Element, tag: string): string | null {
 }
 
 const BGG_PROXY = 'https://ozpepshmkcjpvuyorqtm.supabase.co/functions/v1/bgg-proxy'
+const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+
+function bggFetch(params: string) {
+  return fetch(`${BGG_PROXY}?${params}`, {
+    headers: { apikey: ANON_KEY },
+  })
+}
 
 export async function searchBgg(query: string): Promise<BggSearchResult[]> {
-  const res = await fetch(`${BGG_PROXY}?path=/search&query=${encodeURIComponent(query)}&type=boardgame`)
+  const res = await bggFetch(`path=/search&query=${encodeURIComponent(query)}&type=boardgame`)
+  if (!res.ok) throw new Error(`BGG proxy error ${res.status}: ${await res.text()}`)
   const doc = parseXml(await res.text())
   return Array.from(doc.querySelectorAll('item'))
     .slice(0, 20)
@@ -36,7 +44,7 @@ export async function searchBgg(query: string): Promise<BggSearchResult[]> {
 }
 
 export async function fetchBggDetail(bgg_id: number): Promise<BggGameDetail | null> {
-  const res = await fetch(`${BGG_PROXY}?path=/thing&id=${bgg_id}&type=boardgame`)
+  const res = await bggFetch(`path=/thing&id=${bgg_id}&type=boardgame`)
   const doc = parseXml(await res.text())
   const item = doc.querySelector('item')
   if (!item) return null

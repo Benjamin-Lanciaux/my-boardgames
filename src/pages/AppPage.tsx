@@ -37,8 +37,8 @@ export function AppPage() {
       const res = await searchBgg(query)
       setResults(res)
       if (res.length === 0) toast.info('Aucun résultat pour cette recherche')
-    } catch {
-      toast.error('Erreur lors de la recherche BGG')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la recherche BGG')
     } finally {
       setSearching(false)
     }
