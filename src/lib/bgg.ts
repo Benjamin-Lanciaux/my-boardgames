@@ -20,22 +20,12 @@ function val(el: Element, tag: string): string | null {
   return el.querySelector(tag)?.getAttribute('value') ?? null
 }
 
-async function fetchWithRetry(url: string, maxAttempts = 5, delayMs = 2000): Promise<Response> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const res = await fetch(url)
-    if (res.status !== 202) return res
-    await new Promise(r => setTimeout(r, delayMs))
-  }
-  throw new Error('BGG API: timeout après plusieurs tentatives (202)')
-}
+const BGG_PROXY = 'https://ozpepshmkcjpvuyorqtm.supabase.co/functions/v1/bgg-proxy'
 
 export async function searchBgg(query: string): Promise<BggSearchResult[]> {
-  const res = await fetchWithRetry(
-    `/bgg-api/search?query=${encodeURIComponent(query)}&type=boardgame`
-  )
+  const res = await fetch(`${BGG_PROXY}?path=/search&query=${encodeURIComponent(query)}&type=boardgame`)
   const doc = parseXml(await res.text())
-  const items = Array.from(doc.querySelectorAll('item'))
-  return items
+  return Array.from(doc.querySelectorAll('item'))
     .slice(0, 20)
     .map(item => ({
       bgg_id: parseInt(item.getAttribute('id') ?? '0'),
@@ -46,7 +36,7 @@ export async function searchBgg(query: string): Promise<BggSearchResult[]> {
 }
 
 export async function fetchBggDetail(bgg_id: number): Promise<BggGameDetail | null> {
-  const res = await fetchWithRetry(`/bgg-api/thing?id=${bgg_id}&type=boardgame`)
+  const res = await fetch(`${BGG_PROXY}?path=/thing&id=${bgg_id}&type=boardgame`)
   const doc = parseXml(await res.text())
   const item = doc.querySelector('item')
   if (!item) return null
