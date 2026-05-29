@@ -13,27 +13,40 @@ export interface BggGameDetail extends BggSearchResult {
 }
 
 function parseXml(xml: string): Document {
-  return new DOMParser().parseFromString(xml, 'application/xml')
+  return new DOMParser().parseFromString(xml, 'text/xml')
 }
 
 function val(el: Element, tag: string): string | null {
   return el.querySelector(tag)?.getAttribute('value') ?? null
 }
 
+async function fetchWithRetry(url: string, maxAttempts = 5, delayMs = 2000): Promise<Response> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const res = await fetch(url)
+    if (res.status !== 202) return res
+    await new Promise(r => setTimeout(r, delayMs))
+  }
+  throw new Error('BGG API: timeout après plusieurs tentatives (202)')
+}
+
 export async function searchBgg(query: string): Promise<BggSearchResult[]> {
-  const res = await fetch(`/bgg-api/search?query=${encodeURIComponent(query)}&type=boardgame`)
+  const res = await fetchWithRetry(
+    `/bgg-api/search?query=${encodeURIComponent(query)}&type=boardgame`
+  )
   const doc = parseXml(await res.text())
-  return Array.from(doc.querySelectorAll('item'))
+  const items = Array.from(doc.querySelectorAll('item'))
+  return items
     .slice(0, 20)
     .map(item => ({
       bgg_id: parseInt(item.getAttribute('id') ?? '0'),
       name: item.querySelector('name[type="primary"]')?.getAttribute('value') ?? '(sans titre)',
       year: val(item, 'yearpublished') ? parseInt(val(item, 'yearpublished')!) : null,
     }))
+    .filter(g => g.bgg_id > 0)
 }
 
 export async function fetchBggDetail(bgg_id: number): Promise<BggGameDetail | null> {
-  const res = await fetch(`/bgg-api/thing?id=${bgg_id}&type=boardgame`)
+  const res = await fetchWithRetry(`/bgg-api/thing?id=${bgg_id}&type=boardgame`)
   const doc = parseXml(await res.text())
   const item = doc.querySelector('item')
   if (!item) return null
