@@ -7,6 +7,5 @@ export const supabase = createClient(url, key, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    storageKey: 'my-boardgames-auth',
   },
 })
