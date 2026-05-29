@@ -20,7 +20,7 @@ function val(el: Element, tag: string): string | null {
   return el.querySelector(tag)?.getAttribute('value') ?? null
 }
 
-const BGG_BASE = 'https://boardgamegeek.com/xmlapi2'
+const BGG_BASE = 'https://api.geekdo.com/xmlapi2'
 
 export async function searchBgg(query: string): Promise<BggSearchResult[]> {
   const res = await fetch(`${BGG_BASE}/search?query=${encodeURIComponent(query)}&type=boardgame`)
